@@ -1,0 +1,19 @@
+#!/bin/sh
+
+if [[ -z $VAGRANTW_DIR ]]; then
+    export VAGRANTW_DIR="$HOME/.vagrantwrapper"
+fi
+
+if [[ ! -d $VAGRANTW_DIR ]]; then
+    echo "$VAGRANTW_DIR not found creating..."
+    mkdir -p $VAGRANTW_DIR
+
+    echo "Creating default Vagrantfile..."
+    # TODO: Curl this from my repo
+    cp Vagrantfile $VAGRANTW_DIR/Vagrantfile
+fi
+
+curdir=$(pwd)
+cd $VAGRANTW_DIR
+SYNC_DIR=$curdir vagrant $@
+cd $curdir
