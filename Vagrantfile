@@ -17,7 +17,7 @@ Vagrant.configure("2") do |config|
   # Vagrant wrapper addition: This grabs the directory that vagrantw was evoked
   # from from the environment. This syncs it to /vagrant overriding the vagrant
   # default.
-  config.synced_folder = ENV["SYNC_DIR"], "/vagrant"
+  config.vm.synced_folder ENV["SYNC_DIR"], "/vagrant"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
