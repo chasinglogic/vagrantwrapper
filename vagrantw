@@ -1,19 +1,129 @@
-#!/bin/sh
+#!/bin/bash
+# Copyright 2018 Mathew Robinson
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+# Grab where vagrantw has been evoked from
+export curdir=$(pwd)
+
+# If the environment variable is not set then set to default
 if [[ -z $VAGRANTW_DIR ]]; then
     export VAGRANTW_DIR="$HOME/.vagrantwrapper"
 fi
 
-if [[ ! -d $VAGRANTW_DIR ]]; then
+function ensure_vagrantwrapper_dir {
+    if [[ -d $VAGRANTW_DIR ]]; then
+        return
+    fi
+
     echo "$VAGRANTW_DIR not found creating..."
     mkdir -p $VAGRANTW_DIR
-
+    
     echo "Creating default Vagrantfile..."
-    # TODO: Curl this from my repo
-    cp Vagrantfile $VAGRANTW_DIR/Vagrantfile
+    if [[ -x $(which curl) ]]; then
+        DOWNLOAD_CMD="curl -o $VAGRANTW_DIR/Vagrantfile"
+    else
+        DOWNLOAD_CMD="wget -o $VAGRANTW_DIR/Vagrantfile"
+    fi
+    
+    $DOWNLOAD_CMD "https://raw.githubusercontent.com/chasinglogic/vagrantwrapper/master/Vagrantfile"
+}
+
+# Builds an env directory symlinking Vagrantfile as necessary.
+function ensure_envdir {
+    if [[ ! -d $1 ]]; then
+        mkdir -p $1
+    fi
+
+    if [[ ! -f $1/Vagrantfile ]]; then
+        ln -s $VAGRANTW_DIR/Vagrantfile $1/Vagrantfile
+    fi
+}
+
+function print_help() {
+    echo "
+Usage: vagrantw [options] [<args>...]
+
+Vagrant wrapper, a way to use one Vagrantfile for all your projects. ARGS is
+always passed directly through to vagrant and so any flags or commands that
+vagrant accepts this wrapper will as well. The only exceptions being '-h' and
+'-n' as described below.
+
+The '-a' argument is used to run a vagrant command against all machines
+managed by vagrant wrapper. Useful for common tasks like shutting down all
+VMs.
+
+Options:
+    -h         Print this help message and exit.
+    -a         Run vagrant command on all known environments
+    -n <name>  Name for this new environment. This defaults to the
+               basename of the present working directory.
+
+For vagrant help and not the help for this script run 'vagrantw help' or
+'vagrantw --help'
+"
+}
+
+function run_vagrant {
+    # First argument is where to run vagrant
+    cd $1
+    # Shift past first argument
+    shift 1
+    # Global curdir must be set
+    SYNC_DIR=$curdir vagrant $@
+}
+
+# Make sure our vagrantwrapper dir exists
+ensure_vagrantwrapper_dir
+
+# Parse our options shift appopriately for options found. Getopts sorts the
+# options so it's safe to do this. This ensures we don't pass our flags
+# down to vagrant which may have different / no meaning to vagrant.
+while getopts n:ha option; do
+    case ${option} in
+        a)  
+            VAGRANTW_ALL=1
+            shift 1
+            ;;
+        h) 
+            print_help
+            exit 0
+            ;;
+        n) 
+            export VAGRANTW_ENV_NAME="$OPTARG"
+            shift 2
+            ;;
+    esac
+done
+
+# If -n hasn't been passed set env name to the basename of $curdir 
+if [[ -z $VAGRANTW_ENV_NAME ]]; then
+    export VAGRANTW_ENV_NAME="$(basename $curdir)"
 fi
 
-curdir=$(pwd)
-cd $VAGRANTW_DIR
-SYNC_DIR=$curdir vagrant $@
+export ENVDIR="$VAGRANTW_DIR/environments/$VAGRANTW_ENV_NAME"
+
+# Ensure that the newly minted $ENVDIR exists and is ready with a
+# Vagrantfile
+ensure_envdir $ENVDIR
+
+if [[ $VAGRANTW_ALL == 1 ]]; then
+    environments="$(find $VAGRANTW_DIR/environments -maxdepth 1 -type d)"
+    for env in $environments; do
+        run_vagrant $env $@
+    done
+else
+    run_vagrant $ENVDIR $@
+fi
+
 cd $curdir
