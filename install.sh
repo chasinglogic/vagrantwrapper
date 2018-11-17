@@ -21,7 +21,7 @@ fi
 
 echo "Using $DOWNLOAD_CMD"
 
-if [[ -z INSTALL_DIR ]]; then
+if [[ -z $INSTALL_DIR ]]; then
     INSTALL_DIR="$HOME/.local/bin"
     echo "INSTALL_DIR was not set. Installing into the default $INSTALL_DIR"
 fi
