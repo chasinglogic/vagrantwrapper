@@ -4,7 +4,13 @@ Vagrant wrapper allows you to store a single Vagrantfile in a predefined
 location `$VAGRANTW_DIR` and use that across multiple projects with ease. Think
 like the popular [virtualenvwrapper]() but for Vagrant.
 
-## Example
+- [Example Use Case](#Example-Use-Case)
+- [How it Works](#How-it-Works)
+- [Installation](#Installation)
+- [Usage](#Usage)
+- [Using Your Own Vagrantfile](#Using-Your-Own-Vagrantfile)
+
+## Example Use Case
 
 Let's say for instance I have a project that looks like the following:
 
@@ -178,3 +184,19 @@ For vagrant help and not the help for this script run 'vagrantw help' or
 'vagrantw --help'
 
 ```
+
+## Using Your Own Vagrantfile
+
+If you already have a Vagrantfile you want to use then all you need to do is
+make a one line addition:
+
+```ruby
+  # Vagrant wrapper addition: This grabs the directory that vagrantw was evoked
+  # from from the environment. This syncs it to /vagrant overriding the vagrant
+  # default.
+  config.vm.synced_folder ENV["SYNC_DIR"], "/vagrant"
+```
+
+Put this inside the configure block of your Vagrantfile then link or copy
+that file into wherever you've set `$VAGRANTW_DIR` (default:
+`$HOME/.vagrantwrapper`).
